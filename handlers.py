@@ -36,6 +36,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
+# Daily Bonus
+async def daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    users = database.load("users")
+    user = users.get(uid, {})
+
+    from datetime import datetime
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    if user.get("last_bonus") == today:
+        await update.message.reply_text("🕓 You already claimed today's bonus.")
+    else:
+        user["last_bonus"] = today
+        user["diamonds"] = user.get("diamonds", 0) + 100
+        database.save("users", users)
+        await update.message.reply_text("🎁 You received 100 diamonds as daily bonus!")
 
 # ---------------------------- BUTTON CALLBACK ----------------------------
 
