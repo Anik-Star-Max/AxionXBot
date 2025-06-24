@@ -2,25 +2,21 @@
 
 import json
 import os
-import threading
 
-LOCK = threading.Lock()
+def load(filename):
+    if not os.path.exists(f"{filename}.json"):
+        return {}
+    try:
+        with open(f"{filename}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {}
 
-# Mapping names to filenames
-DB_FILES = {
-    "users": "users.json",
-    "complaints": "complaints.json",
-    "referrals": "railway.json"
-}
-
-def load(name):
-    """Load data from a JSON file."""
-    if not os.path.exists(DB_FILES[name]):
-        save(name, {})  # create empty file if not exists
-    with LOCK, open(DB_FILES[name], "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def save(name, data):
-    """Save data to a JSON file."""
-    with LOCK, open(DB_FILES[name], "w", encoding="utf-8") as f:
+def save(filename, data):
+    with open(f"{filename}.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+# Auto-create blank files if missing
+for fname in ["users", "complaints", "railway"]:
+    if not os.path.exists(f"{fname}.json"):
+        save(fname, {})
