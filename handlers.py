@@ -9,6 +9,34 @@ from telegram.ext import ContextTypes
 import database
 import config
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    users = database.load("users")
+
+    if uid not in users:
+        users[uid] = {
+            "banned": False,
+            "diamonds": 0,
+            "vip": False,
+            "likes": 0,
+            "translate": False
+        }
+        database.save("users", users)
+
+    keyboard = [
+        [InlineKeyboardButton("🎮 Start Chat", callback_data="start_chat")],
+        [InlineKeyboardButton("👤 Profile", callback_data="profile")],
+        [InlineKeyboardButton("⚙️ Settings", callback_data="settings")],
+        [InlineKeyboardButton("📜 Rules", callback_data="rules")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        "👋 Welcome to *AxionX Anonymous Chat Bot!*\n\nUse the menu below to navigate:",
+        parse_mode="Markdown",
+        reply_markup=reply_markup
+    )
+
 # ---------------------------- BUTTON CALLBACK ----------------------------
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
