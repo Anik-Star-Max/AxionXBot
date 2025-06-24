@@ -1,11 +1,13 @@
-# handlers.py
-
+from telegram.ext import (
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import database
 import config
-import datetime
-import random
 
 # ---------------------------- BUTTON CALLBACK ----------------------------
 
