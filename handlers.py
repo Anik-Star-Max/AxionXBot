@@ -106,55 +106,72 @@ async def inline_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = InlineKeyboardMarkup(buttons)
     await update.message.reply_text("🔘 Choose an option:", reply_markup=markup)
 # CallbackQueryHandler function
+import datetime
+import random
+
+# 👇 This function will handle all inline button callbacks
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
     await query.answer()  # prevent loading spinner
+    users = database.load("users")
 
     if query.data == "start_chat":
         await context.bot.send_message(uid, "🆕 Use /next to start chatting with a stranger.")
-    
+
     elif query.data == "photo_roulette":
-        await context.bot.send_message(uid, "🎲 Coming soon: Swipe anonymous profile photos!")
-    
+        await photo_roulette(update, context)
+
     elif query.data == "get_vip":
         await context.bot.send_message(uid, "💎 VIP packages:\n1 Day – 500 diamonds\n3 Days – 1500\n5 Days – 2500\n\nBuy via /getvip")
 
     elif query.data == "profile":
-        await profile(update, context)  # already defined
+        await profile(update, context)
 
     elif query.data == "settings":
         await context.bot.send_message(uid, "⚙️ Coming soon: full profile & preferences editor.")
 
     elif query.data == "rules":
-        await rules(update, context)  # already defined
+        await rules(update, context)
 
     elif query.data == "referral_top":
         await context.bot.send_message(uid, "🏆 Coming soon: Referral leaderboard!")
 
     elif query.data == "toggle_translate":
-        users = database.load("users")
         current = users[str(uid)].get("translate", False)
         users[str(uid)]["translate"] = not current
         database.save("users", users)
         msg = "🈳 Translation is now ON." if not current else "❌ Translation is now OFF."
         await context.bot.send_message(uid, msg)
-import datetime
 
-# /getvip <days>
+    elif query.data == "like_photo":
+        target_id = users[str(uid)].get("current_photo_view")
+        if target_id:
+            users[target_id]["likes"] = users[target_id].get("likes", 0) + 1
+            del users[str(uid)]["current_photo_view"]
+            database.save("users", users)
+            await context.bot.send_message(uid, "❤️ You liked this profile!")
+        await photo_roulette(update, context)
+
+    elif query.data == "skip_photo":
+        users[str(uid)].pop("current_photo_view", None)
+        database.save("users", users)
+        await context.bot.send_message(uid, "➡️ Skipped.")
+        await photo_roulette(update, context)
+
+# 👇 /getvip <days>
 async def get_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
+    uid = str(update.effective_user.id)
     users = database.load("users")
 
     try:
         days = int(context.args[0])
         cost = days * 500
-        user = users[str(uid)]
+        user = users[uid]
 
         if user.get("diamonds", 0) < cost:
             return await update.message.reply_text("💎 Not enough diamonds.")
 
-        # Deduct diamonds and give VIP
         user["diamonds"] -= cost
         user["vip"] = True
         expiry = datetime.datetime.now() + datetime.timedelta(days=days)
@@ -164,7 +181,8 @@ async def get_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"👑 VIP activated for {days} days!")
     except:
         await update.message.reply_text("❌ Usage: /getvip 1 | 3 | 5")
-# /photo - send photo to store profile pic
+
+# 👇 /photo - save profile pic
 async def set_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     users = database.load("users")
@@ -172,61 +190,34 @@ async def set_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.photo:
         return await update.message.reply_text("📷 Please send a photo.")
 
-    file_id = update.message.photo[-1].file_id  # highest quality
+    file_id = update.message.photo[-1].file_id
     users[uid]["profile_photo"] = file_id
     database.save("users", users)
 
     await update.message.reply_text("✅ Your anonymous profile photo has been set.")
-import random
 
-# /photo_roulette - view random photos
+# 👇 /photo_roulette - show random stranger profile
 async def photo_roulette(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     users = database.load("users")
 
-    # Pick a random user with photo (except self)
     photo_users = [k for k, v in users.items() if v.get("profile_photo") and k != uid]
     if not photo_users:
         return await update.message.reply_text("🔄 No photos available yet.")
 
     choice = random.choice(photo_users)
     file_id = users[choice]["profile_photo"]
-
-    # Store current viewed profile
     users[uid]["current_photo_view"] = choice
     database.save("users", users)
 
-    # Send with like/skip buttons
-    buttons = [
-        [
-            InlineKeyboardButton("❤️ Like", callback_data="like_photo"),
-            InlineKeyboardButton("❌ Skip", callback_data="skip_photo")
-        ]
-    ]
+    buttons = [[
+        InlineKeyboardButton("❤️ Like", callback_data="like_photo"),
+        InlineKeyboardButton("❌ Skip", callback_data="skip_photo")
+    ]]
     markup = InlineKeyboardMarkup(buttons)
+
     await context.bot.send_photo(chat_id=uid, photo=file_id, caption="🔍 Stranger Profile", reply_markup=markup)
-# Inside your existing button_callback()
 
-    elif query.data == "like_photo":
-        users = database.load("users")
-        uid = str(query.from_user.id)
-        target_id = users[uid].get("current_photo_view")
-
-        if target_id:
-            users[target_id]["likes"] = users[target_id].get("likes", 0) + 1
-            del users[uid]["current_photo_view"]
-            database.save("users", users)
-            await context.bot.send_message(uid, "❤️ You liked this profile!")
-
-        await photo_roulette(update, context)  # next photo
-
-    elif query.data == "skip_photo":
-        users = database.load("users")
-        uid = str(query.from_user.id)
-        users[uid].pop("current_photo_view", None)
-        database.save("users", users)
-        await context.bot.send_message(uid, "➡️ Skipped.")
-        await photo_roulette(update, context)  # next photo
 # In your start function, add this logic:
 
     args = context.args
