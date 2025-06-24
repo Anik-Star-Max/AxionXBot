@@ -1,4 +1,4 @@
-from telegram.ext import ApplicationBuilder
+from telegram.ext import Application
 from handlers import setup_handlers
 import config
 import logging
@@ -9,10 +9,11 @@ logging.basicConfig(
 )
 
 def main():
-    application = ApplicationBuilder().token(config.BOT_TOKEN).build()
+    application = Application.builder().token(config.BOT_TOKEN).build()
     setup_handlers(application)
     print("🤖 AxionXBot started...")
     application.run_polling()
 
 if __name__ == "__main__":
     main()
+
