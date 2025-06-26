@@ -1,22 +1,19 @@
-# database.py
-
 import json
 import os
 
-def load(filename):
-    if not os.path.exists(f"{filename}.json"):
-        return {}
-    try:
-        with open(f"{filename}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
+DB_FOLDER = "data"
+if not os.path.exists(DB_FOLDER):
+    os.makedirs(DB_FOLDER)
 
-def save(filename, data):
-    with open(f"{filename}.json", "w", encoding="utf-8") as f:
+def load(name):
+    path = f"{DB_FOLDER}/{name}.json"
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump({}, f)
+    with open(path, "r") as f:
+        return json.load(f)
+
+def save(name, data):
+    path = f"{DB_FOLDER}/{name}.json"
+    with open(path, "w") as f:
         json.dump(data, f, indent=2)
-
-# Auto-create blank files if missing
-for fname in ["users", "complaints", "railway"]:
-    if not os.path.exists(f"{fname}.json"):
-        save(fname, {})
