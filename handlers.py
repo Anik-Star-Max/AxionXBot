@@ -30,6 +30,71 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 users[uid]["diamonds"] = users[uid].get("diamonds", 0) + 50
                 database.save("users", users)
                 await update.message.reply_text("🎉 Referral successful! You earned 50 💎.")
+
+# Active chats dictionary
+active_chats = {}
+
+# ➤ /start command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    users = database.load("users")
+
+    if uid not in users:
+        users[uid] = {"diamonds": 100, "joined": str(datetime.datetime.now())}
+        database.save("users", users)
+        await update.message.reply_text("🎉 Welcome to AxionX! You've received 100 💎 to start chatting!")
+    else:
+        await update.message.reply_text("👋 Welcome back! Use /next to find a stranger.")
+
+    args = context.args
+    if args and args[0].startswith("ref_"):
+        ref_code = args[0].split("_")[1]
+        if ref_code != uid:
+            if "ref_by" not in users[uid]:
+                users[uid]["ref_by"] = ref_code
+                users[ref_code]["referrals"] = users[ref_code].get("referrals", 0) + 1
+                users[ref_code]["diamonds"] = users[ref_code].get("diamonds", 0) + 100
+                users[uid]["diamonds"] = users[uid].get("diamonds", 0) + 50
+                database.save("users", users)
+                await update.message.reply_text("🎉 Referral successful! You earned 50 💎.")
+
+# ➤ /next command
+async def next_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    users = database.load("users")
+
+    if uid in active_chats:
+        return await update.message.reply_text("❗ You're already in a chat. Use /stop to leave it.")
+
+    for other_id in users:
+        if other_id != uid and other_id not in active_chats.values() and users[other_id].get("searching"):
+            active_chats[uid] = other_id
+            active_chats[other_id] = uid
+            users[uid]["searching"] = False
+            users[other_id]["searching"] = False
+            database.save("users", users)
+
+            await context.bot.send_message(uid, "🔗 Connected! Say hi to your stranger.")
+            await context.bot.send_message(other_id, "🔗 Connected! Say hi to your stranger.")
+            return
+
+    users[uid]["searching"] = True
+    database.save("users", users)
+    await update.message.reply_text("🔍 Searching for a stranger to connect...")
+
+# ➤ /stop command
+async def stop_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+
+    if uid not in active_chats:
+        return await update.message.reply_text("❌ You're not in a chat.")
+
+    partner_id = active_chats.pop(uid)
+    active_chats.pop(partner_id, None)
+
+    await context.bot.send_message(uid, "🛑 You left the chat.")
+    await context.bot.send_message(partner_id, "🚫 Stranger has left the chat.")
+
 # ---------------------------- DAILY BONUS ----------------------------
 
 async def daily_bonus(update: Update, context: ContextTypes.DEFAULT_TYPE):
