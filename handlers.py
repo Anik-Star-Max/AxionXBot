@@ -468,6 +468,34 @@ async def report_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(uid, "🚨 You've reported the stranger. Chat ended.")
     await context.bot.send_message(partner_id, "⚠️ You were reported by your stranger. Chat ended.")
 
+# ➤ /language command
+async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("🇬🇧 English", callback_data='lang_en')],
+        [InlineKeyboardButton("🇮🇳 Hindi", callback_data='lang_hi')],
+        [InlineKeyboardButton("🌐 Bengali", callback_data='lang_bn')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("🌍 Choose your language:", reply_markup=reply_markup)
+
+# ➤ Language callback handler
+async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    uid = str(query.from_user.id)
+
+    # Store selected language in database (if needed)
+    users = database.load("users")
+    if uid not in users:
+        users[uid] = {}
+
+    lang_code = query.data.replace("lang_", "")
+    users[uid]["language"] = lang_code
+    database.save("users", users)
+
+    language_names = {"en": "English", "hi": "Hindi", "bn": "Bengali"}
+    await query.edit_message_text(f"✅ Language set to: {language_names.get(lang_code, 'Unknown')}")
+
 # ---------------------------- BUTTON CALLBACK CONTINUED ----------------------------
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -585,6 +613,7 @@ def setup_handlers(application):
     application.add_handler(CommandHandler("photo_roulette", photo_roulette))
     application.add_handler(CommandHandler("report", report_user))
     application.add_handler(CommandHandler("language", set_language))
+    application.add_handler(CallbackQueryHandler(language_callback, pattern="^lang_"))
     application.add_handler(CommandHandler("top_profiles", top_profiles))
 
     # Admin Commands
