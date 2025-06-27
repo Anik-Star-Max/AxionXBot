@@ -689,9 +689,7 @@ application.add_handler(CommandHandler("unban", unban))
 application.add_handler(CommandHandler("vip", assign_vip))
 application.add_handler(CommandHandler("give", give_diamonds))
 application.add_handler(CommandHandler("broadcast", broadcast))
-
-    # Buttons
-    application.add_handler(CallbackQueryHandler(button_callback))
+application.add_handler(CallbackQueryHandler(button_callback))
 
     # Messages
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
