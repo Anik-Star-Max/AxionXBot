@@ -1,19 +1,21 @@
 import json
 import os
 
-DB_FOLDER = "data"
-if not os.path.exists(DB_FOLDER):
-    os.makedirs(DB_FOLDER)
+# Load data from a JSON file
+def load(filename):
+    file_path = f"{filename}.json"
 
-def load(name):
-    path = f"{DB_FOLDER}/{name}.json"
-    if not os.path.exists(path):
-        with open(path, "w") as f:
-            json.dump({}, f)
-    with open(path, "r") as f:
+    # If file doesn't exist, create default content
+    if not os.path.exists(file_path):
+        with open(file_path, "w", encoding="utf-8") as f:
+            default_data = [] if filename == "reports" else {}
+            json.dump(default_data, f, indent=4)
+
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def save(name, data):
-    path = f"{DB_FOLDER}/{name}.json"
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+# Save data to a JSON file
+def save(filename, data):
+    file_path = f"{filename}.json"
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
