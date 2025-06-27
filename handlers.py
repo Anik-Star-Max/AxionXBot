@@ -7,29 +7,6 @@ import database
 import datetime
 import random
 
-# --------------------- START COMMAND ---------------------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = str(update.effective_user.id)
-    users = database.load("users")
-
-    if uid not in users:
-        users[uid] = {"diamonds": 100, "joined": str(datetime.datetime.now())}
-        database.save("users", users)
-        await update.message.reply_text("🎉 Welcome to AxionX! You've received 100 💎 to start chatting!")
-    else:
-        await update.message.reply_text("👋 Welcome back! Use /next to find a stranger.")
-
-    args = context.args
-    if args and args[0].startswith("ref_"):
-        ref_code = args[0].split("_")[1]
-        if ref_code != uid:
-            if "ref_by" not in users[uid]:
-                users[uid]["ref_by"] = ref_code
-                users[ref_code]["referrals"] = users[ref_code].get("referrals", 0) + 1
-                users[ref_code]["diamonds"] = users[ref_code].get("diamonds", 0) + 100
-                users[uid]["diamonds"] = users[uid].get("diamonds", 0) + 50
-                database.save("users", users)
-                await update.message.reply_text("🎉 Referral successful! You earned 50 💎.")
 
 # Active chats dictionary
 active_chats = {}
