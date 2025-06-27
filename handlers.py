@@ -496,6 +496,23 @@ async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language_names = {"en": "English", "hi": "Hindi", "bn": "Bengali"}
     await query.edit_message_text(f"✅ Language set to: {language_names.get(lang_code, 'Unknown')}")
 
+# ➤ /top_profiles command: Show users with most referrals
+async def top_profiles(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    users = database.load("users")
+    sorted_users = sorted(users.items(), key=lambda x: x[1].get("referrals", 0), reverse=True)[:5]
+
+    if not sorted_users:
+        await update.message.reply_text("📉 No referral data found.")
+        return
+
+    msg = "🏆 *Top 5 Profiles by Referrals:*\n\n"
+    for idx, (uid, data) in enumerate(sorted_users, start=1):
+        username = f"[User](tg://user?id={uid})"
+        referrals = data.get("referrals", 0)
+        msg += f"{idx}. {username} - {referrals} referrals\n"
+
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
 # ---------------------------- BUTTON CALLBACK CONTINUED ----------------------------
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
