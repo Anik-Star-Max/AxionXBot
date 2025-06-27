@@ -265,71 +265,121 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_photo_buttons(update, context)
 # ---------------------------- ADMIN COMMANDS ----------------------------
 
-async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != config.ADMIN_ID:
-        return
-    try:
-        target = str(context.args[0])
-        users = database.load("users")
-        users[target]["banned"] = True
-        database.save("users", users)
-        await update.message.reply_text("✅ User banned.")
-    except:
-        await update.message.reply_text("❌ Usage: /ban <user_id>")
+# ➤ /ban command: Admin bans a user
+async def ban_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized to use this command.")
 
-async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != config.ADMIN_ID:
-        return
-    try:
-        target = str(context.args[0])
-        users = database.load("users")
-        users[target]["banned"] = False
-        database.save("users", users)
-        await update.message.reply_text("✅ User unbanned.")
-    except:
-        await update.message.reply_text("❌ Usage: /unban <user_id>")
+    if not context.args:
+        return await update.message.reply_text("⚠️ Usage: /ban <user_id>")
 
-async def assign_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != config.ADMIN_ID:
-        return
-    try:
-        uid = str(context.args[0])
-        days = int(context.args[1])
-        users = database.load("users")
-        expiry = datetime.datetime.now() + datetime.timedelta(days=days)
+    user_id = context.args[0]
+    banned_users = database.load("banned")
+    banned_users[user_id] = True
+    database.save("banned", banned_users)
+
+    await update.message.reply_text(f"🚫 User {user_id} has been banned.")
+
+# ➤ /unban command: Admin unbans a user
+async def unban_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized to use this command.")
+
+    if not context.args:
+        return await update.message.reply_text("⚠️ Usage: /unban <user_id>")
+
+    user_id = context.args[0]
+    banned_users = database.load("banned")
+    if user_id in banned_users:
+        del banned_users[user_id]
+        database.save("banned", banned_users)
+        await update.message.reply_text(f"✅ User {user_id} has been unbanned.")
+    else:
+        await update.message.reply_text("ℹ️ User was not banned.")
+
+# ➤ /vip command: Admin gives VIP to a user
+async def give_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized.")
+
+    if not context.args:
+        return await update.message.reply_text("⚠️ Usage: /vip <user_id>")
+
+    uid = context.args[0]
+    users = database.load("users")
+    if uid in users:
         users[uid]["vip"] = True
-        users[uid]["vip_expiry"] = expiry.strftime("%Y-%m-%d")
         database.save("users", users)
-        await update.message.reply_text("✅ VIP assigned.")
-    except:
-        await update.message.reply_text("❌ Usage: /vip <user_id> <days>")
+        await update.message.reply_text(f"💎 User {uid} is now a VIP!")
+    else:
+        await update.message.reply_text("❌ User not found.")
 
+# ➤ /give command: Admin gives diamonds
 async def give_diamonds(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != config.ADMIN_ID:
-        return
-    try:
-        uid = str(context.args[0])
-        amount = int(context.args[1])
-        users = database.load("users")
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized.")
+
+    if len(context.args) < 2:
+        return await update.message.reply_text("⚠️ Usage: /give <user_id> <amount>")
+
+    uid = context.args[0]
+    amount = int(context.args[1])
+    users = database.load("users")
+    if uid in users:
         users[uid]["diamonds"] = users[uid].get("diamonds", 0) + amount
         database.save("users", users)
-        await update.message.reply_text("✅ Diamonds sent.")
-    except:
-        await update.message.reply_text("❌ Usage: /give <user_id> <amount>")
+        await update.message.reply_text(f"✅ Given {amount} 💎 to user {uid}.")
+    else:
+        await update.message.reply_text("❌ User not found.")
 
+# ➤ /broadcast command: Admin sends message to all users
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != config.ADMIN_ID:
-        return
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized.")
+
+    if not context.args:
+        return await update.message.reply_text("⚠️ Usage: /broadcast <message>")
+
+    msg = " ".join(context.args)
     users = database.load("users")
-    text = " ".join(context.args)
     count = 0
     for uid in users:
         try:
-            await context.bot.send_message(uid, text)
+            await context.bot.send_message(chat_id=uid, text=msg)
             count += 1
         except:
             continue
-    await update.message.reply_text(f"✅ Broadcast sent to {count} users.")
+    await update.message.reply_text(f"📢 Broadcast sent to {count} users.")
+
+# ➤ /stats command: Admin sees stats
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    users = database.load("users")
+    banned = database.load("banned")
+    total = len(users)
+    total_banned = len(banned)
+    await update.message.reply_text(f"📊 Total Users: {total}\n🚫 Banned: {total_banned}")
+
+# ➤ /reports command: Admin views reports
+async def reports(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_id = str(update.effective_user.id)
+    if admin_id not in ["YOUR_ADMIN_ID_HERE"]:
+        return await update.message.reply_text("❌ You are not authorized.")
+
+    data = database.load("reports")
+    if not data:
+        return await update.message.reply_text("📭 No reports found.")
+
+    msg = ""
+    for i, r in enumerate(data):
+        msg += f"{i+1}. From: {r['from']} | About: {r['reported']} | Reason: {r['reason']}\n"
+
+    await update.message.reply_text(f"📑 Reports:\n\n{msg}")
+
 # ---------------------------- VIP PURCHASE ----------------------------
 
 async def get_vip(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -633,14 +683,12 @@ def setup_handlers(application):
     application.add_handler(CallbackQueryHandler(language_callback, pattern="^lang_"))
     application.add_handler(CommandHandler("top_profiles", top_profiles))
 
-    # Admin Commands
-    application.add_handler(CommandHandler("ban", ban_user))
-    application.add_handler(CommandHandler("unban", unban_user))
-    application.add_handler(CommandHandler("vip", give_vip))
-    application.add_handler(CommandHandler("give", give_diamonds))
-    application.add_handler(CommandHandler("broadcast", broadcast))
-    application.add_handler(CommandHandler("stats", stats))
-    application.add_handler(CommandHandler("reports", reports))
+    # ---------------------- Admin Commands ----------------------
+application.add_handler(CommandHandler("ban", ban))
+application.add_handler(CommandHandler("unban", unban))
+application.add_handler(CommandHandler("vip", assign_vip))
+application.add_handler(CommandHandler("give", give_diamonds))
+application.add_handler(CommandHandler("broadcast", broadcast))
 
     # Buttons
     application.add_handler(CallbackQueryHandler(button_callback))
