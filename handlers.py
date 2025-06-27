@@ -686,7 +686,7 @@ def setup_handlers(application):
     # ---------------------- Admin Commands ----------------------
     application.add_handler(CommandHandler("ban", ban_user))
     application.add_handler(CommandHandler("unban", unban_user))
-    application.add_handler(CommandHandler("vip", assign_vip))
+    application.add_handler(CommandHandler("vip", give_vip))
     application.add_handler(CommandHandler("give", give_diamonds))
     application.add_handler(CommandHandler("broadcast", broadcast))
     application.add_handler(CommandHandler("stats", stats))
