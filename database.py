@@ -1,21 +1,28 @@
 import json
 import os
 
-# Load data from a JSON file
-def load(filename):
-    file_path = f"{filename}.json"
+def load(file):
+    """Load data from a JSON file. Returns an empty dict if file not found or invalid."""
+    try:
+        with open(f"{file}.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
-    # If file doesn't exist, create default content
-    if not os.path.exists(file_path):
-        with open(file_path, "w", encoding="utf-8") as f:
-            default_data = [] if filename == "reports" else {}
-            json.dump(default_data, f, indent=4)
+def save(file, data):
+    """Save data to a JSON file."""
+    with open(f"{file}.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def report_user(reporter_id: str, reported_id: str, reason: str = "No reason provided"):
+    """Add a user report to reports.json"""
+    reports = load("reports")
+    if reported_id not in reports:
+        reports[reported_id] = []
 
-# Save data to a JSON file
-def save(filename, data):
-    file_path = f"{filename}.json"
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
+    reports[reported_id].append({
+        "reporter": reporter_id,
+        "reason": reason
+    })
+
+    save("reports", reports)
