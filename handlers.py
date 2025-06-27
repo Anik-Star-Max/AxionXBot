@@ -447,6 +447,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     markup = InlineKeyboardMarkup(buttons)
     await update.message.reply_text("👋 Welcome to AxionX ChatBot!\n\nChoose an option below 👇", reply_markup=markup)
+    
+    # ➤ /report command: Report current chat partner
+async def report_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    partner_id = active_chats.get(uid)
+
+    if not partner_id:
+        return await update.message.reply_text("❌ You're not in a chat to report someone.")
+
+    # Load report database (if you maintain one)
+    reports = database.load("reports")
+    reports.append({"reporter": uid, "reported": partner_id, "time": str(datetime.datetime.now())})
+    database.save("reports", reports)
+
+    # Disconnect both users
+    active_chats.pop(uid, None)
+    active_chats.pop(partner_id, None)
+
+    await context.bot.send_message(uid, "🚨 You've reported the stranger. Chat ended.")
+    await context.bot.send_message(partner_id, "⚠️ You were reported by your stranger. Chat ended.")
 
 # ---------------------------- BUTTON CALLBACK CONTINUED ----------------------------
 
