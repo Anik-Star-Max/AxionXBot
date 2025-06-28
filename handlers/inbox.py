@@ -2,8 +2,7 @@ from telegram import Update, Message
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 from database import users, save_users
 
-# Replace with your real Telegram admin user ID
-ADMIN_ID = 6549356122  # <-- Replace this with your real ID
+ADMIN_ID = int(os.environ.get("ADMIN_ID"))
 
 # User sends message to admin
 async def ask_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
