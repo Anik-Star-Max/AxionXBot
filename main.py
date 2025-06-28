@@ -1,11 +1,12 @@
 from telegram.ext import ApplicationBuilder
 import logging
+import os
 
 # Init logging
 logging.basicConfig(level=logging.INFO)
 
-# Bot Token (replace this)
-TOKEN = "YOUR_BOT_TOKEN"
+# Secure token
+TOKEN = os.environ.get("BOT_TOKEN")
 
 # App
 app = ApplicationBuilder().token(TOKEN).build()
