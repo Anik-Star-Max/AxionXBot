@@ -1,6 +1,5 @@
-# ✅ Part 6 & 7 - Enhancements + Stop Chat + Next Chat
-
-from telegram import Update, ChatAction
+from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 from database import users, save_users
 import time
