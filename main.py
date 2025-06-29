@@ -1,6 +1,7 @@
 from telegram.ext import ApplicationBuilder
 import logging
 import os
+import asyncio
 
 # Init logging
 logging.basicConfig(level=logging.INFO)
@@ -8,32 +9,31 @@ logging.basicConfig(level=logging.INFO)
 # Secure token
 TOKEN = os.environ.get("BOT_TOKEN")
 
-# App
+# Build app
 app = ApplicationBuilder().token(TOKEN).build()
 
 # ====== Register Handlers ======
-from handlers.otp import register_otp_handler
-from handlers.referral import register_referral_handler
-from handlers.xp import register_xp_handler
-from handlers.ai_reply import register_ai_reply
-from handlers.inbox import register_inbox_handler
-from handlers.reminder import register_reminder_handler
-from handlers.translate import register_translate_handler  # ✅ NEW
+from handlers.chat import (
+    register_chat_handlers  # ✅ All SMC-style chat-related commands
+)
 
-register_otp_handler(app)
-register_referral_handler(app)
-register_xp_handler(app)
-register_ai_reply(app)
-register_inbox_handler(app)
-register_reminder_handler(app)
-register_translate_handler(app)  # ✅ NEW
+register_chat_handlers(app)  # 📌 Register all chat-related commands
 
-# ====== Start Scheduled Tasks ======
-from utils.scheduler import start_daily_quote_task, start_reminder_task
-start_daily_quote_task(app.bot)
-start_reminder_task(app.bot)
+# ====== Start Scheduled Tasks (if needed) ======
+# from utils.scheduler import start_daily_quote_task, start_reminder_task
+# start_daily_quote_task(app.bot)
+# start_reminder_task(app.bot)
 
-# ====== Start App ======
+# ====== Delete Webhook Before Polling ======
+async def delete_old_webhook():
+    try:
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        print("✅ Old webhook deleted.")
+    except Exception as e:
+        print(f"⚠️ Webhook delete error: {e}")
+
+# ====== Start Bot ======
 if __name__ == "__main__":
     print("🤖 Bot is running...")
+    asyncio.run(delete_old_webhook())
     app.run_polling()
