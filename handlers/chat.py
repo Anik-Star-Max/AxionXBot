@@ -247,11 +247,6 @@ async def handle_bonus_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     message = random.choice(bonus_messages)
     await update.message.reply_text(message)
 
-# ✅ Register Bonus Button Handler
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^🎁 Bonus$"), handle_bonus_button)
-)
-
 # ✅ Part 13: Handle 📖 Rules Button
 
 async def handle_rules_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,11 +263,6 @@ async def handle_rules_button(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.message.reply_text(rules_text, parse_mode="HTML")
 
-# ✅ Register Rules Button Handler
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^📖 Rules$"), handle_rules_button)
-)
-
 # ✅ Part 14: Handle 📸 Photo Roulette Button
 
 import random
@@ -288,11 +278,6 @@ async def handle_photo_roulette(update: Update, context: ContextTypes.DEFAULT_TY
 
     message = random.choice(roulette_responses)
     await update.message.reply_text(message)
-
-# ✅ Register Photo Roulette Button Handler
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^📸 Photo Roulette$"), handle_photo_roulette)
-)
 
 # ✅ Part 15: Handle 🌐 Translate Button
 
@@ -311,11 +296,6 @@ async def handle_translate_button(update: Update, context: ContextTypes.DEFAULT_
     )
 
     await update.message.reply_text(translate_message, parse_mode="HTML")
-
-# ✅ Register Translate Button Handler
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^🌐 Translate$"), handle_translate_button)
-)
 
 # ✅ Part 16: Handle 💎 Get VIP Button (Final Clean Version)
 
@@ -336,11 +316,6 @@ async def handle_vip_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(vip_message, parse_mode="HTML")
-
-# ✅ Register VIP Button Handler
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^💎 Get VIP$"), handle_vip_button)
-)
 
 # ✅ Required import at the top (if not already)
 from telegram.ext import (
@@ -639,7 +614,22 @@ def register_chat_handlers(app):
     app.add_handler(CommandHandler("makevip", makevip_command))
     app.add_handler(CommandHandler("report", report_command))
 
-    # ✅ Inline button handler (was causing issue before)
+    # ✅ Inline button handlers
     app.add_handler(
         MessageHandler(filters.TEXT & filters.Regex("^📜 Profile$"), handle_profile_button)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^🎁 Bonus$"), handle_bonus_button)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^📖 Rules$"), handle_rules_button)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^📸 Photo Roulette$"), handle_photo_roulette)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^🌐 Translate$"), handle_translate_button)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^💎 Get VIP$"), handle_vip_button)
     )
