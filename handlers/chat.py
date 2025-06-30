@@ -232,11 +232,6 @@ async def handle_profile_button(update: Update, context: ContextTypes.DEFAULT_TY
 
     await update.message.reply_text(profile_text, parse_mode="HTML")
 
-# ✅ Register the button handler (at the bottom of chat.py)
-application.add_handler(
-    MessageHandler(filters.TEXT & filters.Regex("^📜 Profile$"), handle_profile_button)
-)
-
 # ✅ Part 12: Handle 🎁 Bonus Button (Diamond-themed)
 import random  # make sure this is imported once at top
 
@@ -629,7 +624,7 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"[!] Failed to send report to admin: {e}")
 
-from telegram.ext import CommandHandler
+from telegram.ext import CommandHandler, MessageHandler, filters
 
 def register_chat_handlers(app):
     app.add_handler(CommandHandler("start", start_command))
@@ -643,3 +638,8 @@ def register_chat_handlers(app):
     app.add_handler(CommandHandler("setlanguage", setlanguage_command))
     app.add_handler(CommandHandler("makevip", makevip_command))
     app.add_handler(CommandHandler("report", report_command))
+
+    # ✅ Inline button handler (was causing issue before)
+    app.add_handler(
+        MessageHandler(filters.TEXT & filters.Regex("^📜 Profile$"), handle_profile_button)
+    )
