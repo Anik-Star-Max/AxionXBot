@@ -385,8 +385,6 @@ update_profile_conv = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel_update)],
 )
 
-application.add_handler(update_profile_conv)
-
 # ✅ Required imports
 import os
 from telegram.ext import (
@@ -440,8 +438,6 @@ report_conv = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel_report)],
 )
-
-application.add_handler(report_conv)
 
 # ✅ Nickname Generator
 import random
@@ -615,21 +611,13 @@ def register_chat_handlers(app):
     app.add_handler(CommandHandler("report", report_command))
 
     # ✅ Inline button handlers
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^📜 Profile$"), handle_profile_button)
-    )
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^🎁 Bonus$"), handle_bonus_button)
-    )
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^📖 Rules$"), handle_rules_button)
-    )
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^📸 Photo Roulette$"), handle_photo_roulette)
-    )
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^🌐 Translate$"), handle_translate_button)
-    )
-    app.add_handler(
-        MessageHandler(filters.TEXT & filters.Regex("^💎 Get VIP$"), handle_vip_button)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📜 Profile$"), handle_profile_button))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^🎁 Bonus$"), handle_bonus_button))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📖 Rules$"), handle_rules_button))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^📸 Photo Roulette$"), handle_photo_roulette))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^🌐 Translate$"), handle_translate_button))
+    app.add_handler(MessageHandler(filters.TEXT & filters.Regex("^💎 Get VIP$"), handle_vip_button))
+
+    # ✅ Conversation Handlers
+    app.add_handler(update_profile_conv)
+    app.add_handler(report_conv)
