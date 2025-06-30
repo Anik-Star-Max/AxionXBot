@@ -5,24 +5,59 @@ from database import users, save_users
 import time
 import os
 from dotenv import load_dotenv
+from utils.nicknames import ensure_nickname  # Adjust import path as needed
+from handlers.match import match_user           # Ensure match_user is defined
 
 load_dotenv()
 ADMIN_ID = os.getenv("ADMIN_ID")
 
+# handlers/match.py
+
+async def match_user(update, context):
+    user_id = str(update.effective_user.id)
+
+    # 1️⃣ Agar already kisi se connected hai
+    current_partner = users[user_id].get("chatting_with")
+    if current_partner:
+        await update.message.reply_text("🔗 You're already chatting. Use /stop to end.")
+        return
+
+    # 2️⃣ Try to find a free partner
+    for other_id, data in users.items():
+        if other_id != user_id and data.get("chatting_with") is None:
+            # Connect both
+            users[user_id]["chatting_with"] = other_id
+            users[other_id]["chatting_with"] = user_id
+            save_users(users)
+
+            # Notify both
+            await update.message.reply_text("🔗 Connected! Say hi 👋")
+            await context.bot.send_message(chat_id=int(other_id),
+                                           text="🔗 Connected! Say hi 👋")
+            return
+
+    # 3️⃣ No one available right now
+    await update.message.reply_text("🔍 No one available right now. Please wait or try /next again.")
+
+# Rate limiting for messages
 RATE_LIMIT = {}  # {user_id: last_message_timestamp}
 RATE_SECONDS = 1.5
 
-def is_rate_limited(user_id):
+def is_rate_limited(user_id: str) -> bool:
     now = time.time()
-    if user_id not in RATE_LIMIT or now - RATE_LIMIT[user_id] > RATE_SECONDS:
-        RATE_LIMIT[user_id] = now
-        return False
-    return True
+    last = RATE_LIMIT.get(user_id, 0)
+    if now - last < RATE_SECONDS:
+        return True
+    RATE_LIMIT[user_id] = now
+    return False
 
-# Typing action decorator
+# Decorator to show typing action
 def send_typing_action(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id,
+            action=ChatAction.TYPING
+        )
         return await func(update, context)
     return wrapper
 
@@ -36,134 +71,108 @@ async def handle_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if partner_id and partner_id in users:
-        if update.message.text:
-            await context.bot.send_message(chat_id=int(partner_id), text=update.message.text)
-        elif update.message.photo:
-            await context.bot.send_photo(chat_id=int(partner_id), photo=update.message.photo[-1].file_id)
-        elif update.message.sticker:
-            await context.bot.send_sticker(chat_id=int(partner_id), sticker=update.message.sticker.file_id)
-        elif update.message.document:
-            await context.bot.send_document(chat_id=int(partner_id), document=update.message.document.file_id)
-        elif update.message.voice:
-            await context.bot.send_voice(chat_id=int(partner_id), voice=update.message.voice.file_id)
-        elif update.message.video:
-            await context.bot.send_video(chat_id=int(partner_id), video=update.message.video.file_id)
+        msg = update.message
+        if msg.text:
+            await context.bot.send_message(chat_id=int(partner_id), text=msg.text)
+        elif msg.photo:
+            await context.bot.send_photo(chat_id=int(partner_id), photo=msg.photo[-1].file_id)
+        elif msg.sticker:
+            await context.bot.send_sticker(chat_id=int(partner_id), sticker=msg.sticker.file_id)
+        elif msg.document:
+            await context.bot.send_document(chat_id=int(partner_id), document=msg.document.file_id)
+        elif msg.voice:
+            await context.bot.send_voice(chat_id=int(partner_id), voice=msg.voice.file_id)
+        elif msg.video:
+            await context.bot.send_video(chat_id=int(partner_id), video=msg.video.file_id)
         else:
             await update.message.reply_text("⚠️ Unsupported message type.")
     else:
         await update.message.reply_text("❌ You're not chatting with anyone. Use /next to connect.")
 
-# ===============================
-# 🔴 Stop Chat
 @send_typing_action
-async def stop_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     partner_id = users.get(user_id, {}).get("chatting_with")
 
     if partner_id and partner_id in users:
         users[user_id]["chatting_with"] = None
         users[partner_id]["chatting_with"] = None
-        save_users()
-
+        save_users(users)
         await update.message.reply_text("❌ Chat ended.")
         try:
             await context.bot.send_message(chat_id=int(partner_id), text="⚠️ Stranger left the chat.")
-        except:
+        except Exception:
             pass
     else:
         await update.message.reply_text("⚠️ You're not chatting with anyone.")
 
-# ===============================
-# 🔄 Next Chat
 @send_typing_action
-async def next_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def next_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
     users[user_id]["chatting_with"] = None
-    save_users()
+    save_users(users)
 
-    for other_id in users:
-        if other_id != user_id and users[other_id].get("chatting_with") is None:
+    for other_id, data in users.items():
+        if other_id != user_id and data.get("chatting_with") is None:
             users[user_id]["chatting_with"] = other_id
             users[other_id]["chatting_with"] = user_id
-            save_users()
-
+            save_users(users)
             await update.message.reply_text("🔗 Connected to a new stranger!")
             await context.bot.send_message(chat_id=int(other_id), text="🔗 Connected to a new stranger!")
             return
 
-    await update.message.reply_text("🔍 Looking for someone to chat with... (Try again after a few seconds)")
-# handlers/chat.py - Part 8
+    await update.message.reply_text(
+        "🔍 Looking for someone to chat with... (Try again after a few seconds)"
+    )
 
-from telegram import Update, ReplyKeyboardRemove
-from telegram.ext import ContextTypes, CommandHandler
-from database import users, save_users
-
+@send_typing_action
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = str(update.effective_user.id)
-    first_name = update.effective_user.first_name or "User"
+    first_name = update.effective_user.first_name or "Stranger"
 
+    # Create profile if new
     if user_id not in users:
         users[user_id] = {
             "id": user_id,
             "name": first_name,
-            "partner": None,
-            "in_queue": False,
-            "active": True,
-            "blocked": [],
-            "chat_history": []
+            "chatting_with": None,
+            "is_vip": False,
+            "last_chat": 0,
+            "bio": "Not set yet",
+            "gender": "Not set",
+            "language": "Not set",
+            "nickname": None
         }
-        save_users()
+        ensure_nickname(user_id)
+        save_users(users)
 
-    await update.message.reply_text(
-        f"👋 Hello {first_name}!\n\nWelcome to *Stranger Chat Bot*!\n\nPress /next to start talking with someone anonymously.\n\nUse /stop to leave chat anytime.",
-        parse_mode="Markdown",
-        reply_markup=ReplyKeyboardRemove()
-    )
+    # Ensure nickname
+    ensure_nickname(user_id)
+    nick = users[user_id]["nickname"]
 
-# Register this in main.py
-# from handlers.chat import start_command
-# app.add_handler(CommandHandler("start", start_command))
-# ✅ Part 9: /start command
-
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    username = update.effective_user.username or "NoUsername"
-
-    # ✅ Profile check
-    if user_id not in users:
-        await update.message.reply_text("⚠️ Please create your profile first using /menu.")
-        return
-
+    # Free user cooldown
     is_vip = users[user_id].get("is_vip", False)
+    now = time.time()
+    if not is_vip:
+        last = users[user_id].get("last_chat", 0)
+        if now - last < 3600:
+            mins = int((3600 - (now - last)) / 60) + 1
+            await update.message.reply_text(
+                f"🕐 Free users can only start one chat per hour.\n"
+                f"Please wait {mins} minute(s) or upgrade to VIP."
+            )
+            return
+        users[user_id]["last_chat"] = now
+        save_users(users)
 
-    # ✅ VIP or normal welcome message
-    if is_vip:
-        await update.message.reply_text(
-            "💎 Welcome VIP!\nSearching for a match now..."
-        )
-    else:
-        await update.message.reply_text(
-            "✅ Welcome back!\nSearching for a match now..."
-        )
-
-    # ✅ Start match directly (assumes match_user() function already exists)
-    await match_user(update, context)
-
-    # Naya profile banao
-    users[user_id] = {
-        "id": user_id,
-        "username": username,
-        "chatting_with": None,
-        "is_searching": False
-    }
-
-    save_users(users)  # save in database.json
-
-    await update.message.reply_text(
-        f"👋 Welcome to Anonymous Connect!\n\n"
-        f"You're now part of our stranger chat platform.\n"
-        f"Use /next to find a stranger or /stop to leave chat anytime."
+    # Welcome and match
+    welcome = (
+        f"👋 Hello {first_name} ({nick})!\n\n"
+        f"{'💎 VIP Member' if is_vip else '🔓 Free User'}\n"
+        "Searching for a stranger to chat with..."
     )
+    await update.message.reply_text(welcome, reply_markup=ReplyKeyboardRemove())
+    await match_user(update, context)
 
 # ✅ Part 9: Create Profile
 async def create_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
